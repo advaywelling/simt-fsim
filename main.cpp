@@ -48,6 +48,7 @@ Wave::Wave(size_t num_regs) : regs(num_regs) {
         }
     } else {
         std::cout << "Why would you want 0 regs";
+        std::abort();
     }
 }
 
