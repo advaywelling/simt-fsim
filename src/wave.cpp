@@ -37,14 +37,14 @@ Value Wave::resolve(const Operand& operand, size_t lane) const {
 void Wave::execute(const Instruction& instr) {
     switch (instr.op) {
         case Opcode::MOV_IMM_U32: {
-            for (size_t i = 0; i < WAVE_SIZE; i++) {
+            for (size_t i {}; i < WAVE_SIZE; i++) {
                 if (!active_mask[i]) continue; // dont execute masked lanes
                 regs[instr.operands[0].value][i] = resolve(instr.operands[1], i);
             }
             break;
         }
         case Opcode::ADD_U32: {
-            for (size_t i = 0; i < WAVE_SIZE; i++) {
+            for (size_t i {}; i < WAVE_SIZE; i++) {
                 if (!active_mask[i]) continue;
                 Value a = resolve(instr.operands[1], i);
                 Value b = resolve(instr.operands[2], i);
@@ -53,11 +53,11 @@ void Wave::execute(const Instruction& instr) {
             break;
         }
         case Opcode::SETP_LT_U32: {
-            for (size_t i = 0; i < WAVE_SIZE; i++) {
+            for (size_t i {}; i < WAVE_SIZE; i++) {
                 if (!active_mask[i]) continue;
                 Value a = resolve(instr.operands[1], i);
                 Value b = resolve(instr.operands[2], i);
-                regs[instr.operands[0].value][i] = (a < b) ? 1u : 0u;
+                regs[instr.operands[0].value][i] = (a < b) ? 1 : 0;
             }
             break;
         }
@@ -72,7 +72,6 @@ void Wave::run(const std::vector<Instruction>& program) {
     }
     simt_stack.clear();
     while (pc < program.size()) {
-        const Instruction& instr = program[pc];
         if (pc == curr_reconv_pc) {
             ReconvEntry top = simt_stack.back();
             simt_stack.pop_back();
@@ -83,11 +82,25 @@ void Wave::run(const std::vector<Instruction>& program) {
             }
             else { // entry type is JOIN
                 active_mask = top.mask;
-                curr_reconv_pc = 0;
+                curr_reconv_pc = SIZE_MAX;
             }
             continue;
         }
+        const Instruction& instr = program[pc];
         if (instr.op == Opcode::BRANCH) {
+            Value target = instr.operands[0].value;
+            Value reconv_pc = instr.operands[1].value;
+            std::array<bool, WAVE_SIZE> taken_mask {};
+            std::array<bool, WAVE_SIZE> fall_mask {};
+            for(size_t i {}; i < WAVE_SIZE; i++) {
+                if (!active_mask[i]) continue;
+                bool pred_status = regs[instr.guard][i] != 0;
+                if (pred_status) {
+                    taken_mask[i] = true;
+                } else {
+                    fall_mask[i] = true;
+                }
+            }
             
         }
         execute(instr);
