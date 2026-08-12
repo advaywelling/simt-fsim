@@ -3,8 +3,8 @@
 
 struct ReconvEntry {
     std::array<bool, WAVE_SIZE> mask; // lanes to run 
-    size_t resume_pc; // where deferred path starts, unused for type JOIN
-    size_t reconv_pc; // where everyone reconverges
+    size_t resume_pc = SIZE_MAX; // where deferred path starts, unused for type JOIN
+    size_t reconv_pc = SIZE_MAX; // where everyone reconverges
     enum class Entry_Type : uint8_t {
         PATH,
         JOIN,

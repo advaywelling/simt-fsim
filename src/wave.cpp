@@ -101,7 +101,23 @@ void Wave::run(const std::vector<Instruction>& program) {
                     fall_mask[i] = true;
                 }
             }
-            
+            ReconvEntry join, true_path, false_path;
+            // reconverge here
+            join.mask = active_mask;
+            join.reconv_pc = reconv_pc;
+            join.entry = ReconvEntry::Entry_Type::JOIN;
+            // taken path
+            true_path.mask = taken_mask;
+            true_path.resume_pc = pc + 1;
+            true_path.entry = ReconvEntry::Entry_Type::PATH;
+            // deferred path
+            false_path.mask = fall_mask;
+            false_path.resume_pc = target;
+            false_path.entry = ReconvEntry::Entry_Type::PATH;
+            // push all to stack
+            simt_stack.push_back(join);
+            simt_stack.push_back(true_path);
+            simt_stack.push_back(false_path);
         }
         execute(instr);
         pc++;
