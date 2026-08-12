@@ -39,6 +39,10 @@ void Wave::execute(const Instruction& instr) {
         case Opcode::MOV_IMM_U32: {
             for (size_t i {}; i < WAVE_SIZE; i++) {
                 if (!active_mask[i]) continue; // dont execute masked lanes
+                if (instr.guard != NO_GUARD) {
+                    bool pred_val = regs[instr.guard][i];
+                    if (pred_val = instr.guard_negate) continue; // dont execute if guard val matches
+                }
                 regs[instr.operands[0].value][i] = resolve(instr.operands[1], i);
             }
             break;
@@ -46,6 +50,10 @@ void Wave::execute(const Instruction& instr) {
         case Opcode::ADD_U32: {
             for (size_t i {}; i < WAVE_SIZE; i++) {
                 if (!active_mask[i]) continue;
+                if (instr.guard != NO_GUARD) {
+                    bool pred_val = regs[instr.guard][i];
+                    if (pred_val = instr.guard_negate) continue;
+                }
                 Value a = resolve(instr.operands[1], i);
                 Value b = resolve(instr.operands[2], i);
                 regs[instr.operands[0].value][i] = a + b;
@@ -55,6 +63,10 @@ void Wave::execute(const Instruction& instr) {
         case Opcode::SETP_LT_U32: {
             for (size_t i {}; i < WAVE_SIZE; i++) {
                 if (!active_mask[i]) continue;
+                if (instr.guard != NO_GUARD) {
+                    bool pred_val = regs[instr.guard][i];
+                    if (pred_val = instr.guard_negate) continue;
+                }
                 Value a = resolve(instr.operands[1], i);
                 Value b = resolve(instr.operands[2], i);
                 regs[instr.operands[0].value][i] = (a < b) ? 1 : 0;
@@ -65,9 +77,17 @@ void Wave::execute(const Instruction& instr) {
     }
 }
 
+bool check_path(const std::array<bool, WAVE_SIZE> path) {
+    size_t count{};
+    for(size_t i{}; i < WAVE_SIZE; i++) {
+        count += path[i] ? 1 : 0;
+    }
+    return static_cast<bool>(count);
+}
+
 void Wave::run(const std::vector<Instruction>& program) {
     pc = 0;
-    for(size_t i{}; i < WAVE_SIZE; i++) {
+    for(size_t i{}; i < WAVE_SIZE;i++) {
         active_mask[i] = true; // set all masks active to start with
     }
     simt_stack.clear();
@@ -108,16 +128,25 @@ void Wave::run(const std::vector<Instruction>& program) {
             join.entry = ReconvEntry::Entry_Type::JOIN;
             // taken path
             true_path.mask = taken_mask;
-            true_path.resume_pc = pc + 1;
+            true_path.resume_pc = target;
+            true_path.reconv_pc = reconv_pc;
             true_path.entry = ReconvEntry::Entry_Type::PATH;
             // deferred path
             false_path.mask = fall_mask;
-            false_path.resume_pc = target;
+            false_path.resume_pc = pc + 1;
+            false_path.reconv_pc = reconv_pc;
             false_path.entry = ReconvEntry::Entry_Type::PATH;
             // push all to stack
             simt_stack.push_back(join);
-            simt_stack.push_back(true_path);
-            simt_stack.push_back(false_path);
+            if (check_path(false_path.mask)) simt_stack.push_back(false_path);
+            if (check_path(true_path.mask)) simt_stack.push_back(true_path);
+
+            ReconvEntry curr_entry = simt_stack.back();
+            simt_stack.pop_back();
+            curr_reconv_pc = curr_entry.reconv_pc;
+            pc = curr_entry.resume_pc;
+            active_mask = curr_entry.mask;
+            continue;
         }
         execute(instr);
         pc++;
