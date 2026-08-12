@@ -34,34 +34,63 @@ Value Wave::resolve(const Operand& operand, size_t lane) const {
     std::abort();
 }
 
+void Wave::execute(const Instruction& instr) {
+    switch (instr.op) {
+        case Opcode::MOV_IMM_U32: {
+            for (size_t i = 0; i < WAVE_SIZE; i++) {
+                if (!active_mask[i]) continue; // dont execute masked lanes
+                regs[instr.operands[0].value][i] = resolve(instr.operands[1], i);
+            }
+            break;
+        }
+        case Opcode::ADD_U32: {
+            for (size_t i = 0; i < WAVE_SIZE; i++) {
+                if (!active_mask[i]) continue;
+                Value a = resolve(instr.operands[1], i);
+                Value b = resolve(instr.operands[2], i);
+                regs[instr.operands[0].value][i] = a + b;
+            }
+            break;
+        }
+        case Opcode::SETP_LT_U32: {
+            for (size_t i = 0; i < WAVE_SIZE; i++) {
+                if (!active_mask[i]) continue;
+                Value a = resolve(instr.operands[1], i);
+                Value b = resolve(instr.operands[2], i);
+                regs[instr.operands[0].value][i] = (a < b) ? 1u : 0u;
+            }
+            break;
+        }
+        // BRA handled in run, not here
+    }
+}
+
 void Wave::run(const std::vector<Instruction>& program) {
     pc = 0;
+    for(size_t i{}; i < WAVE_SIZE; i++) {
+        active_mask[i] = true; // set all masks active to start with
+    }
+    simt_stack.clear();
     while (pc < program.size()) {
         const Instruction& instr = program[pc];
-        switch (instr.op) {
-            case Opcode::MOV_IMM_U32 : {
-                if (instr.operands[0].value < regs.size()) {
-                    for(size_t i{}; i < WAVE_SIZE; i++) {    
-                        regs[instr.operands[0].value][i] = resolve(instr.operands[1], i);
-                    }
-                } else {
-                    std::cout << "R" << instr.operands[0].value << " out of bounds\n";
-                }
-                break;
+        if (pc == curr_reconv_pc) {
+            ReconvEntry top = simt_stack.back();
+            simt_stack.pop_back();
+            if (top.entry == ReconvEntry::Entry_Type::PATH) {
+                active_mask = top.mask;
+                pc = top.resume_pc;
+                curr_reconv_pc = top.reconv_pc;
             }
-            case Opcode::ADD_U32 : {
-                if (instr.operands[0].value < regs.size()) {
-                    for(size_t i{}; i < WAVE_SIZE; i++) {
-                        Value val1 = resolve(instr.operands[1], i);
-                        Value val2 = resolve(instr.operands[2], i);
-                        regs[instr.operands[0].value][i] = val1 + val2;
-                    }
-                } else {
-                    std::cout << "R" << instr.operands[0].value << " out of bounds\n";
-                }
-                break;
+            else { // entry type is JOIN
+                active_mask = top.mask;
+                curr_reconv_pc = 0;
             }
+            continue;
         }
+        if (instr.op == Opcode::BRANCH) {
+            
+        }
+        execute(instr);
         pc++;
     }
 }

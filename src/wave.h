@@ -2,9 +2,14 @@
 #include "ir.h"
 
 struct ReconvEntry {
-    std::array<bool, WAVE_SIZE> mask; // which lans the deferred path runs on
-    size_t resume_pc; // where deferred path starts
+    std::array<bool, WAVE_SIZE> mask; // lanes to run 
+    size_t resume_pc; // where deferred path starts, unused for type JOIN
     size_t reconv_pc; // where everyone reconverges
+    enum class Entry_Type : uint8_t {
+        PATH,
+        JOIN,
+    };
+    Entry_Type entry;
 };
 
 class Wave {
@@ -19,5 +24,5 @@ class Wave {
         std::array<bool, WAVE_SIZE> active_mask; // who's active rn
         std::vector<ReconvEntry> simt_stack; // all deferred lanes
         void execute(const Instruction& instr); // execute 1 instr
-        
+        size_t curr_reconv_pc = SIZE_MAX;
 };
