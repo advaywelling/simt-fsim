@@ -1,3 +1,4 @@
+#pragma once
 #include "../src/wave.h"
 #include <iostream>
 
