@@ -41,7 +41,7 @@ void Wave::execute(const Instruction& instr) {
                 if (!active_mask[i]) continue; // dont execute masked lanes
                 if (instr.guard != NO_GUARD) {
                     bool pred_val = regs[instr.guard][i];
-                    if (pred_val = instr.guard_negate) continue; // dont execute if guard val matches
+                    if (pred_val == instr.guard_negate) continue; // dont execute if guard val matches
                 }
                 regs[instr.operands[0].value][i] = resolve(instr.operands[1], i);
             }
@@ -52,7 +52,7 @@ void Wave::execute(const Instruction& instr) {
                 if (!active_mask[i]) continue;
                 if (instr.guard != NO_GUARD) {
                     bool pred_val = regs[instr.guard][i];
-                    if (pred_val = instr.guard_negate) continue;
+                    if (pred_val == instr.guard_negate) continue;
                 }
                 Value a = resolve(instr.operands[1], i);
                 Value b = resolve(instr.operands[2], i);
@@ -65,7 +65,7 @@ void Wave::execute(const Instruction& instr) {
                 if (!active_mask[i]) continue;
                 if (instr.guard != NO_GUARD) {
                     bool pred_val = regs[instr.guard][i];
-                    if (pred_val = instr.guard_negate) continue;
+                    if (pred_val == instr.guard_negate) continue;
                 }
                 Value a = resolve(instr.operands[1], i);
                 Value b = resolve(instr.operands[2], i);
@@ -77,7 +77,7 @@ void Wave::execute(const Instruction& instr) {
     }
 }
 
-bool check_path(const std::array<bool, WAVE_SIZE> path) {
+bool check_mask(const std::array<bool, WAVE_SIZE> path) {
     size_t count{};
     for(size_t i{}; i < WAVE_SIZE; i++) {
         count += path[i] ? 1 : 0;
@@ -102,12 +102,16 @@ void Wave::run(const std::vector<Instruction>& program) {
             }
             else { // entry type is JOIN
                 active_mask = top.mask;
-                curr_reconv_pc = SIZE_MAX;
+                curr_reconv_pc = simt_stack.empty() ? SIZE_MAX : simt_stack.back().reconv_pc;
             }
             continue;
         }
         const Instruction& instr = program[pc];
         if (instr.op == Opcode::BRANCH) {
+            if (!check_mask(active_mask)) {
+                pc++;
+                continue;
+            }
             Value target = instr.operands[0].value;
             Value reconv_pc = instr.operands[1].value;
             std::array<bool, WAVE_SIZE> taken_mask {};
@@ -138,8 +142,8 @@ void Wave::run(const std::vector<Instruction>& program) {
             false_path.entry = ReconvEntry::Entry_Type::PATH;
             // push all to stack
             simt_stack.push_back(join);
-            if (check_path(false_path.mask)) simt_stack.push_back(false_path);
-            if (check_path(true_path.mask)) simt_stack.push_back(true_path);
+            if (check_mask(false_path.mask)) simt_stack.push_back(false_path);
+            if (check_mask(true_path.mask)) simt_stack.push_back(true_path);
 
             ReconvEntry curr_entry = simt_stack.back();
             simt_stack.pop_back();
