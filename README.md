@@ -3,9 +3,11 @@ A functional SIMT simulator that executes GPU kernel IR (my bad custom ISA, PTX,
 
 # To build
 cmake -B build
+
 cmake --build build
 # To run
 For all tests
 ./build/src
+
 For specific test (example "branch")
 ./build/src branch
