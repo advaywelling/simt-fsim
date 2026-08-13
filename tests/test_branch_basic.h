@@ -11,7 +11,7 @@ inline void test_branch_basic() {
         MOV(3,5), // false path
         BRANCH(6, 6), // tell false lanes to reconverge
         ADD(4, 2, 3), // true path
-        MOV(4, 10) // reconv
+        MOV(5, 10) // reconv
     };
     wave.run(program);
     wave.dump_regs();
