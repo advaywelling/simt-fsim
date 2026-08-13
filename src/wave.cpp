@@ -24,6 +24,11 @@ void Wave::dump_regs() const {
     std::cout << " ----------------- " << "\n";
 }
 
+void Wave::simd_stats() const {
+    int simd_util = (double)total_active_lanes / total_lanes * 100;
+    std::cout << "Average SIMD utilization = " << simd_util << "%\n";
+}
+
 Value Wave::resolve(const Operand& operand, size_t lane) const {
     if (operand.kind == Operand::Kind::Imm) {
         return operand.value;
@@ -73,8 +78,16 @@ void Wave::execute(const Instruction& instr) {
             }
             break;
         }
+        default: break;
         // BRA handled in run, not here
     }
+    // count active lanes
+    int active_count = 0;
+    for (size_t i{}; i < WAVE_SIZE; i++) {
+        active_count += active_mask[i] ? 1 : 0;
+    }
+    total_active_lanes += active_count;
+    total_lanes += WAVE_SIZE;
 }
 
 bool check_mask(const std::array<bool, WAVE_SIZE> path) {

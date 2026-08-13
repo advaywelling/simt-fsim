@@ -17,6 +17,7 @@ class Wave {
         explicit Wave(size_t num_regs);
         void dump_regs() const;
         void run(const std::vector<Instruction>& program);
+        void simd_stats() const;
     private:
         size_t pc {};
         RegFile regs;
@@ -25,4 +26,6 @@ class Wave {
         std::vector<ReconvEntry> simt_stack; // all deferred lanes
         void execute(const Instruction& instr); // execute 1 instr
         size_t curr_reconv_pc = SIZE_MAX;
+        size_t total_active_lanes {};
+        size_t total_lanes {};
 };
