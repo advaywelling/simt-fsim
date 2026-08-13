@@ -25,11 +25,11 @@ void Wave::dump_regs() const {
 }
 
 void Wave::simd_stats() const {
-    int simd_util = (double)total_active_lanes / total_lanes * 100;
+    int simd_util = (double)total_active_lanes / ideal_active_lanes * 100;
     std::cout << "Average SIMD utilization = " << simd_util << "%\n";
 }
 
-Value Wave::resolve(const Operand& operand, size_t lane) const {
+uint32_t Wave::resolve(const Operand& operand, size_t lane) const {
     if (operand.kind == Operand::Kind::Imm) {
         return operand.value;
     } else if (operand.value < regs.size()){
@@ -59,8 +59,8 @@ void Wave::execute(const Instruction& instr) {
                     bool pred_val = regs[instr.guard][i];
                     if (pred_val == instr.guard_negate) continue;
                 }
-                Value a = resolve(instr.operands[1], i);
-                Value b = resolve(instr.operands[2], i);
+                uint32_t a = resolve(instr.operands[1], i);
+                uint32_t b = resolve(instr.operands[2], i);
                 regs[instr.operands[0].value][i] = a + b;
             }
             break;
@@ -72,8 +72,8 @@ void Wave::execute(const Instruction& instr) {
                     bool pred_val = regs[instr.guard][i];
                     if (pred_val == instr.guard_negate) continue;
                 }
-                Value a = resolve(instr.operands[1], i);
-                Value b = resolve(instr.operands[2], i);
+                uint32_t a = resolve(instr.operands[1], i);
+                uint32_t b = resolve(instr.operands[2], i);
                 regs[instr.operands[0].value][i] = (a < b) ? 1 : 0;
             }
             break;
@@ -87,7 +87,7 @@ void Wave::execute(const Instruction& instr) {
         active_count += active_mask[i] ? 1 : 0;
     }
     total_active_lanes += active_count;
-    total_lanes += WAVE_SIZE;
+    ideal_active_lanes += WAVE_SIZE;
 }
 
 bool check_mask(const std::array<bool, WAVE_SIZE> path) {
@@ -125,8 +125,8 @@ void Wave::run(const std::vector<Instruction>& program) {
                 pc++;
                 continue;
             }
-            Value target = instr.operands[0].value;
-            Value reconv_pc = instr.operands[1].value;
+            uint32_t target = instr.operands[0].value;
+            uint32_t reconv_pc = instr.operands[1].value;
             std::array<bool, WAVE_SIZE> taken_mask {};
             std::array<bool, WAVE_SIZE> fall_mask {};
             for(size_t i {}; i < WAVE_SIZE; i++) {

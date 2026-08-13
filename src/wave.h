@@ -18,14 +18,18 @@ class Wave {
         void dump_regs() const;
         void run(const std::vector<Instruction>& program);
         void simd_stats() const;
+
     private:
         size_t pc {};
         RegFile regs;
-        Value resolve(const Operand& op, size_t lane) const;
+        std::vector<uint32_t> gmem[16384];
+        uint32_t resolve(const Operand& op, size_t lane) const;
         std::array<bool, WAVE_SIZE> active_mask; // who's active rn
         std::vector<ReconvEntry> simt_stack; // all deferred lanes
         void execute(const Instruction& instr); // execute 1 instr
         size_t curr_reconv_pc = SIZE_MAX;
         size_t total_active_lanes {};
-        size_t total_lanes {};
+        size_t ideal_active_lanes {};
+        size_t total_mem_transfers {};
+        size_t ideal_mem_transfers {};
 };

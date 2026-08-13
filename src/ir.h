@@ -4,15 +4,17 @@
 #include <array>
 
 constexpr size_t WAVE_SIZE = 8; // warp/wavefront
-using Value = uint32_t;
-using RegFile = std::vector<std::array<Value, WAVE_SIZE>>; // SoA format
+using RegFile = std::vector<std::array<uint32_t, WAVE_SIZE>>; // SoA format
 inline constexpr uint16_t NO_GUARD = 0xFFFF;
+constexpr size_t GMEM_SEGMENT_SIZE = 8; // line/segment size = 8 bytes
 
 enum class Opcode : uint8_t {
     MOV_IMM_U32, // rd = imm
     ADD_U32, // rd = ra + ab
     BRANCH, // unconditional branch
     SETP_LT_U32, // set pred rd_lane = ra_lane < rb_lane ? 1 : 0 
+    LW_U32, // rd = mem[ra + imm]
+    SW_U32, // mem[rd + imm] = ra
 };
 
 struct Operand {
@@ -21,7 +23,7 @@ struct Operand {
         Imm,
     };
     Kind kind;
-    Value value; // reg -> reg idx, imm -> the bits
+    uint32_t value; // reg -> reg idx, imm -> the bits
 };
 
 struct Instruction {
