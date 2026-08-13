@@ -2,6 +2,7 @@
 #include "../src/wave.h"
 #include <iostream>
 
+constexpr int num_regs = 32;
 
 // rd = ra + rb
 inline Instruction ADD(Value rd, Value ra, Value rb, uint16_t guard = NO_GUARD, bool neg = false) {

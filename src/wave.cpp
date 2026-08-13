@@ -118,7 +118,7 @@ void Wave::run(const std::vector<Instruction>& program) {
             std::array<bool, WAVE_SIZE> fall_mask {};
             for(size_t i {}; i < WAVE_SIZE; i++) {
                 if (!active_mask[i]) continue;
-                bool pred_status = regs[instr.guard][i] != 0;
+                bool pred_status = instr.guard == NO_GUARD ? true : regs[instr.guard][i] != 0;
                 if (pred_status) {
                     taken_mask[i] = true;
                 } else {

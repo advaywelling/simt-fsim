@@ -3,13 +3,14 @@
 
 inline void test_branch_basic() {
     std::cout << "Basic Branch Test\n";
-    Wave wave(32);
+    Wave wave(num_regs);
     std::vector<Instruction> program = { 
         MOV(1,4),
         SETP_LT(2, 0, 1),
-        BRANCH(4,5,2),
+        BRANCH(5,6,2),
         MOV(3,5), // false path
-        ADD(3, 1, 2), // true path
+        BRANCH(6, 6), // tell false lanes to reconverge
+        ADD(4, 2, 3), // true path
         MOV(4, 10) // reconv
     };
     wave.run(program);
