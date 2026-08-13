@@ -23,3 +23,8 @@ inline Instruction SETP_LT(uint32_t rd, uint32_t ra, uint32_t rb, uint16_t guard
 inline Instruction BRANCH(uint32_t target, uint32_t reconv_pc, uint16_t guard = NO_GUARD) {
     return {Opcode::BRANCH, {{{Operand::Kind::Imm, target}, {Operand::Kind::Imm, reconv_pc}, {Operand::Kind::Imm, 0}}}, guard, false};
 }
+
+// rd = mem[ra + imm] 
+inline Instruction LW(uint32_t rd, uint32_t ra, uint32_t imm, uint16_t guard = NO_GUARD, bool neg = false) {
+    return {Opcode::LW_U32, {{{Operand::Kind::Reg, rd}, {Operand::Kind::Reg, ra}, {Operand::Kind::Imm, imm}}}, guard, neg};
+}

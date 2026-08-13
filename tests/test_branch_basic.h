@@ -15,5 +15,5 @@ inline void test_branch_basic() {
     };
     wave.run(program);
     wave.dump_regs();
-    wave.simd_stats();
+    wave.stats();
 }

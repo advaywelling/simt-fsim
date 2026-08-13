@@ -17,12 +17,12 @@ class Wave {
         explicit Wave(size_t num_regs);
         void dump_regs() const;
         void run(const std::vector<Instruction>& program);
-        void simd_stats() const;
+        void stats() const;
 
     private:
         size_t pc {};
         RegFile regs;
-        std::vector<uint32_t> gmem[16384];
+        std::vector<uint32_t> gmem;
         uint32_t resolve(const Operand& op, size_t lane) const;
         std::array<bool, WAVE_SIZE> active_mask; // who's active rn
         std::vector<ReconvEntry> simt_stack; // all deferred lanes

@@ -6,7 +6,8 @@
 constexpr size_t WAVE_SIZE = 8; // warp/wavefront
 using RegFile = std::vector<std::array<uint32_t, WAVE_SIZE>>; // SoA format
 inline constexpr uint16_t NO_GUARD = 0xFFFF;
-constexpr size_t GMEM_SEGMENT_SIZE = 8; // line/segment size = 8 bytes
+constexpr size_t GMEM_SIZE = 16384;
+constexpr size_t GMEM_SEGMENT_SIZE = 8; // line/segment size = 8 words / 32 bytes
 
 enum class Opcode : uint8_t {
     MOV_IMM_U32, // rd = imm

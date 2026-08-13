@@ -12,6 +12,11 @@ int main(int argc, char* argv[]) {
         test_branch_basic();
         std:: cout << "\n";
         test_branch_nested();
+        std:: cout << "\n";
+
+        std::cout << "Running LW test \n";
+        test_lw();
+        std:: cout << "\n";
         return 0;
     }
     std::string test = argv[1];
@@ -24,5 +29,9 @@ int main(int argc, char* argv[]) {
         test_branch_basic();
         std::cout << "\n";
         test_branch_nested();
+    }
+    if (test == "lw") {
+        std::cout << "Running LW test \n";
+        test_lw();
     }
 }

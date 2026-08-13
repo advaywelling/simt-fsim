@@ -1,6 +1,7 @@
 #include "wave.h"
 #include <iostream>
 #include <cstdlib>
+#include <set>
 
 Wave::Wave(size_t num_regs) : regs(num_regs) {
     if (num_regs > 0) {
@@ -10,6 +11,10 @@ Wave::Wave(size_t num_regs) : regs(num_regs) {
     } else {
         std::cout << "Why would you want 0 regs";
         std::abort();
+    }
+    gmem.resize(GMEM_SIZE);
+    for(size_t i{}; i < GMEM_SIZE; i++) {
+        gmem[i] = i * 10;
     }
 }
 
@@ -24,9 +29,12 @@ void Wave::dump_regs() const {
     std::cout << " ----------------- " << "\n";
 }
 
-void Wave::simd_stats() const {
+void Wave::stats() const {
     int simd_util = (double)total_active_lanes / ideal_active_lanes * 100;
     std::cout << "Average SIMD utilization = " << simd_util << "%\n";
+
+    int coalescing = (double)ideal_mem_transfers / total_mem_transfers * 100;
+    std::cout << "Average coalescing = " << coalescing << "%\n";
 }
 
 uint32_t Wave::resolve(const Operand& operand, size_t lane) const {
@@ -76,6 +84,24 @@ void Wave::execute(const Instruction& instr) {
                 uint32_t b = resolve(instr.operands[2], i);
                 regs[instr.operands[0].value][i] = (a < b) ? 1 : 0;
             }
+            break;
+        }
+        case Opcode::LW_U32: {
+            std::set<size_t> segments;
+            for (size_t i{}; i < WAVE_SIZE; i++) {
+                if (!active_mask[i]) continue;
+                if (instr.guard != NO_GUARD) {
+                    bool pred_val = regs[instr.guard][i];
+                    if (pred_val == instr.guard_negate) continue;
+                }
+                uint32_t a = resolve(instr.operands[1], i);
+                uint32_t b = resolve(instr.operands[2], i);
+                uint32_t addr = a + b;
+                segments.insert(addr / GMEM_SEGMENT_SIZE); // for checking coalescing
+                regs[instr.operands[0].value][i] = gmem[addr];
+            }
+            total_mem_transfers += segments.size();
+            ideal_mem_transfers += 1;
             break;
         }
         default: break;
