@@ -1,5 +1,5 @@
 #pragma once
-#include "ir.h"
+#include "IR.h"
 
 struct ReconvEntry {
     std::array<bool, WAVE_SIZE> mask; // lanes to run 
