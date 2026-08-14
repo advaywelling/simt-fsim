@@ -11,11 +11,27 @@ CFG build_cfg(const std::vector<Instruction>& program) {
     // rule 3 -> branch fall through - leader (not taken path)
     std::vector<bool> is_leader(n, false);
     if (n) is_leader[0] = true; // rule 1
-    for (int i{}; i < n; i++) {
+    for (size_t i{}; i < n; i++) {
         if (program[i].op == Opcode::BRANCH) {
             size_t target = program[i].operands[0].value; 
             if (target < n) is_leader[i] = true; // rule 2
             if (i + 1 < n) is_leader[i + 1] = true; // rule 3
         }
+    }
+
+    // use leaders to build basic blocks
+    for (size_t i{}; i < n; i++) {
+        if (is_leader[i]) {
+            if (!cfg.blocks.empty()) {
+                cfg.blocks.back().end_pc = i - 1;
+            }
+            BasicBlock new_block;
+            new_block.start_pc = i;
+            cfg.blocks.push_back(new_block);
+        }
+        cfg.pc_to_block[i] = cfg.blocks.size() - 1; // which block is instr i in
+    }
+    if (!cfg.blocks.empty()) {
+        cfg.blocks.back().end_pc = n - 1;
     }
 }
