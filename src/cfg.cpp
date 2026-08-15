@@ -34,4 +34,21 @@ CFG build_cfg(const std::vector<Instruction>& program) {
     if (!cfg.blocks.empty()) {
         cfg.blocks.back().end_pc = n - 1;
     }
+
+    // build edges between blocks (nodes)
+    for (size_t i{}; i < cfg.blocks.size(); i++) {
+        Instruction curr_instr = program[cfg.blocks[i].end_pc];
+        // conditional branch
+        if (curr_instr.op == Opcode::BRANCH && curr_instr.guard != NO_GUARD) {
+            cfg.blocks[i].edges.push_back(cfg.pc_to_block[cfg.blocks[i].end_pc + 1]); // fall-through block
+        }
+        // unconditional branch
+        else if (curr_instr.op == Opcode::BRANCH && curr_instr.guard == NO_GUARD) {
+            cfg.blocks[i].edges.push_back(cfg.pc_to_block[curr_instr.operands[0].value]); // target block
+        }
+        // not a branch
+        else if (cfg.blocks[i].end_pc + 1 < program.size()){
+            cfg.blocks[i].edges.push_back(cfg.pc_to_block[cfg.blocks[i].end_pc + 1]); // fall-through block
+        }
+    }
 }
