@@ -18,6 +18,7 @@ class Wave {
         void dump_regs() const;
         void run(const std::vector<Instruction>& program);
         void stats() const;
+        const RegFile& registers() const { return regs; } // for tests to assert on
 
     private:
         size_t pc {};

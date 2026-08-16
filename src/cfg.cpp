@@ -3,7 +3,7 @@
 CFG build_cfg(const std::vector<Instruction>& program) {
     CFG cfg;
     size_t n = program.size();
-    cfg.pc_to_block.resize(n);
+    cfg.pc_to_block.resize(n + 1);
 
     // find block leaders (start of basic block)
     // 3 rules
@@ -36,26 +36,51 @@ CFG build_cfg(const std::vector<Instruction>& program) {
         cfg.blocks.back().end_pc = n - 1;
     }
 
-    // build edges between blocks (nodes)
-    for (size_t i{}; i < cfg.blocks.size(); i++) {
+    // end of program block
+    BasicBlock end_block;
+    end_block.start_pc = end_block.end_pc = n;
+    cfg.blocks.push_back(end_block);
+    cfg.pc_to_block[n] = cfg.blocks.size() - 1;
+
+    // build edges between blocks (nodes) 
+    // stop before exit block
+    for (size_t i{}; i < cfg.blocks.size() - 1; i++) { 
         Instruction curr_instr = program[cfg.blocks[i].end_pc];
         size_t fallthrough = cfg.blocks[i].end_pc + 1;
-        bool within_bounds = fallthrough < program.size();
+        bool within_bounds_fallthrough = fallthrough < program.size();
+        size_t jump_pc = curr_instr.operands[0].value;
+        bool within_bounds_jump = jump_pc < program.size();
         // conditional branch
         if (curr_instr.op == Opcode::BRANCH && curr_instr.guard != NO_GUARD) {
-            cfg.blocks[i].edges.push_back(cfg.pc_to_block[curr_instr.operands[0].value]);
-            if (within_bounds) {
+            if (within_bounds_jump) {
+                cfg.blocks[i].edges.push_back(cfg.pc_to_block[jump_pc]);
+            }
+            else {
+                cfg.blocks[i].edges.push_back(cfg.pc_to_block[program.size()]);
+            }
+            if (within_bounds_fallthrough) {
                 cfg.blocks[i].edges.push_back(cfg.pc_to_block[fallthrough]); // fall-through block
+            }
+            else {
+                cfg.blocks[i].edges.push_back(cfg.pc_to_block[program.size()]);
             }
         }
         // unconditional branch
         else if (curr_instr.op == Opcode::BRANCH && curr_instr.guard == NO_GUARD) {
-            cfg.blocks[i].edges.push_back(cfg.pc_to_block[curr_instr.operands[0].value]); // target block
+            if (within_bounds_jump) {
+                cfg.blocks[i].edges.push_back(cfg.pc_to_block[jump_pc]); // target block
+            }
+            else {
+                cfg.blocks[i].edges.push_back(cfg.pc_to_block[program.size()]);
+            }
         }
         // not a branch
         else {
-            if (within_bounds) {
-                cfg.blocks[i].edges.push_back(cfg.pc_to_block[cfg.blocks[i].end_pc + 1]); // fall-through block
+            if (within_bounds_fallthrough) {
+                cfg.blocks[i].edges.push_back(cfg.pc_to_block[fallthrough]); // fall-through block
+            }
+            else {
+                cfg.blocks[i].edges.push_back(cfg.pc_to_block[program.size()]);
             }
         }
     }   

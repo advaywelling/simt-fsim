@@ -1,4 +1,5 @@
 #pragma once
+#include "check.h"
 #include "test_alu.h"
 #include "test_branch_basic.h"
 #include "test_branch_nested.h"

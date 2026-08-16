@@ -14,11 +14,16 @@ cmake --build build
 # To run
 For all tests
 
-./build/src
+./build/sim
 
 For specific test (alu/branch/lw/cfg)
 
-./build/src -placename
+./build/sim -placename
 
 eg.
-./build/src branch
+./build/sim branch
+
+The tests are self-checking - the exit code is non-zero if any check fails.
+You can also run them through ctest:
+
+ctest --test-dir build --output-on-failure
