@@ -2,17 +2,22 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <string>
 #include "../src/wave.h"
 
 // tests keep their void signature and report into this tally
 inline int checks_run = 0;
 inline int checks_failed = 0;
 
+inline void fail_at(const char* file, int line, const std::string& what) {
+    checks_failed++;
+    std::cout << "  FAIL " << file << ":" << line << "  " << what << "\n";
+}
+
 inline void check_impl(const char* file, int line, bool ok, const char* expr) {
     checks_run++;
     if (ok) return;
-    checks_failed++;
-    std::cout << "  FAIL " << file << ":" << line << "  " << expr << "\n";
+    fail_at(file, line, expr);
 }
 
 inline void expect_reg_impl(const char* file, int line, const Wave& wave, size_t r,
@@ -20,14 +25,12 @@ inline void expect_reg_impl(const char* file, int line, const Wave& wave, size_t
     checks_run++;
     const RegFile& regs = wave.registers();
     if (r >= regs.size()) {
-        checks_failed++;
-        std::cout << "  FAIL " << file << ":" << line << "  R" << r << " does not exist\n";
+        fail_at(file, line, "R" + std::to_string(r) + " does not exist");
         return;
     }
     if (regs[r] == want) return;
 
-    checks_failed++;
-    std::cout << "  FAIL " << file << ":" << line << "  R" << r << "\n";
+    fail_at(file, line, "R" + std::to_string(r));
     std::cout << "    want:";
     for (uint32_t v : want) std::cout << " " << v;
     std::cout << "\n    got: ";

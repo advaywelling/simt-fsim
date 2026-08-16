@@ -1,6 +1,7 @@
 #pragma once
 #include "ISA.h"
 #include "check.h"
+#include "reference.h"
 
 inline void test_branch_basic() {
     std::cout << "Basic Branch Test\n";
@@ -17,7 +18,10 @@ inline void test_branch_basic() {
     wave.run(program);
     wave.stats();
 
-    // lanes 0-3 take the branch (tid < 4), lanes 4-7 fall through
+    // covers every register at once
+    EXPECT_MATCHES_REFERENCE(wave, program);
+
+    // hand-derived anchors: lanes 0-3 take the branch (tid < 4), lanes 4-7 fall through
     EXPECT_REG(wave, 1,  4, 4, 4, 4, 4, 4, 4, 4);
     EXPECT_REG(wave, 2,  1, 1, 1, 1, 0, 0, 0, 0); // tid < 4
     EXPECT_REG(wave, 3,  0, 0, 0, 0, 5, 5, 5, 5); // written on the false path only

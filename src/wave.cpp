@@ -164,10 +164,6 @@ void Wave::run(const std::vector<Instruction>& program) {
             uint32_t target = instr.operands[0].value;
             //uint32_t reconv_pc = instr.operands[1].value;
 
-            auto curr_block = cfg.pc_to_block[pc];
-            auto ipdom_block = ipdom[curr_block];
-            auto reconv_pc = cfg.blocks[ipdom_block].start_pc; 
-
             std::array<bool, WAVE_SIZE> taken_mask {};
             std::array<bool, WAVE_SIZE> fall_mask {};
             for(size_t i {}; i < WAVE_SIZE; i++) {
@@ -179,6 +175,22 @@ void Wave::run(const std::vector<Instruction>& program) {
                     fall_mask[i] = true;
                 }
             }
+
+            // uniform branch - no divergence so no stack activity
+            if (!check_mask(fall_mask)) { // all active lanes take it
+                pc = target;
+                continue;
+            }
+            if (!check_mask(taken_mask)) { // no active lane takes it
+                pc++;
+                continue;
+            }
+
+            // divergent, so now we need a reconvergence point + stack stuff
+            auto curr_block = cfg.pc_to_block[pc];
+            auto ipdom_block = ipdom[curr_block];
+            auto reconv_pc = cfg.blocks[ipdom_block].start_pc;
+
             ReconvEntry join, true_path, false_path;
             // reconverge here
             join.mask = active_mask;

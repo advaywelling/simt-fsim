@@ -178,6 +178,9 @@ std::vector<size_t> compute_ipdom(const CFG& cfg, const std::vector<std::set<siz
     std::vector<size_t> ipdom(num_blocks, SIZE_MAX);
 
     for (size_t i{}; i < num_blocks; i++) { 
+
+        // earlier pc-based ipdom
+        /*
         size_t smallest_pc = SIZE_MAX;
         size_t earliest_block = SIZE_MAX;
         for(size_t j : pdom[i]) { // each block j that post dominates block i
@@ -188,6 +191,24 @@ std::vector<size_t> compute_ipdom(const CFG& cfg, const std::vector<std::set<siz
             }
         }
         ipdom[i] = earliest_block;
+        */
+
+        // true ipdom - works with loops bc it's based on block execution order not pc order
+       for(size_t j : pdom[i]) {
+            if (j == i) continue;
+            bool is_first = true;
+            for(size_t k : pdom[i]) {
+                if (k == i || k == j) continue;
+                if (!pdom[j].count(k)) { // if k does NOT post dominate j - meaning j cannot be ipdom
+                    is_first = false;
+                    break;
+                }
+            }
+            if (is_first) {
+                ipdom[i] = j;
+                break;
+            }
+       }
     }
     return ipdom;
 }
