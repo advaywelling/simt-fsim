@@ -73,3 +73,61 @@ void print_cfg(const CFG& cfg) {
         std::cout << "}\n";
     }
 }
+
+std::vector<std::vector<size_t>> compute_postdom(const CFG& cfg) {
+    size_t num_blocks = cfg.blocks.size();
+    std::vector<std::set<size_t>> postdom(num_blocks);
+
+    // find exit block
+    size_t exit = 0;
+    for(size_t i{}; i < num_blocks; i++) {
+        if (cfg.blocks[i].edges.empty()) {
+            exit = i;
+            break;
+        }
+    }
+
+    // build pdom sets optimistically 
+    // if last block then pdom set is just itself, otherwise start with all blocks
+    for(size_t i{}; i < num_blocks; i++) {
+        if (i == exit) {
+            postdom[i].insert(exit);
+        } else {
+            for(size_t j{}; j < num_blocks; j++) {
+                postdom[i].insert(j);
+            }
+        }
+    }
+
+    // iterate until nothing changes
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for(size_t i {}; i < num_blocks; i++) {
+            if (i == exit) continue;
+
+            const auto& curr_block_edges = cfg.blocks[i].edges; // all edges of curr block
+            std::set<size_t> new_pdom;
+
+            if (!curr_block_edges.empty()) {
+                new_pdom = postdom[curr_block_edges[0]];
+                for(size_t i = 1; i < curr_block_edges.size(); i++) {
+                    std::set<size_t> temp;
+                    // for each successor, only insert if ALSO in successing successors (say that quickly 5 times)
+                    for(size_t x : new_pdom) {
+                        if(postdom[curr_block_edges[i]].count(x)) {
+                            temp.insert(x);
+                        }
+                    }
+                    new_pdom = temp; // new pdom set shrinks to common pdoms
+                }
+            }
+            new_pdom.insert(i); // insert itself
+
+            if(new_pdom != postdom[i]) {
+                postdom[i] = new_pdom;
+                changed = true;
+            }
+        }
+    }
+}
