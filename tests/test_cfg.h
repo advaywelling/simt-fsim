@@ -12,5 +12,5 @@ inline void test_cfg() {
         MOV(5, 99),        // 6: reconverge
     };
     CFG cfg = build_cfg(program);
-    print_cfg(cfg);
+    print_cfg(cfg); // also runs pdom and ipdom functions
 }

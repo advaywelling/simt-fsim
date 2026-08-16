@@ -1,7 +1,8 @@
-#include "wave.h"
 #include <iostream>
 #include <cstdlib>
 #include <set>
+#include "wave.h"
+#include "cfg.h"
 
 Wave::Wave(size_t num_regs) : regs(num_regs) {
     if (num_regs > 0) {
@@ -33,8 +34,12 @@ void Wave::stats() const {
     int simd_util = (double)total_active_lanes / ideal_active_lanes * 100;
     std::cout << "Average SIMD utilization = " << simd_util << "%\n";
 
-    int coalescing = (double)ideal_mem_transfers / total_mem_transfers * 100;
-    std::cout << "Average coalescing = " << coalescing << "%\n";
+    if (total_mem_transfers != 0) {
+        int coalescing = (double)ideal_mem_transfers / total_mem_transfers * 100;
+        std::cout << "Average coalescing = " << coalescing << "%\n";
+    } else {
+        std::cout << "No coalescing to report\n";
+    }
 }
 
 uint32_t Wave::resolve(const Operand& operand, size_t lane) const {
@@ -130,6 +135,11 @@ void Wave::run(const std::vector<Instruction>& program) {
         active_mask[i] = true; // set all masks active to start with
     }
     simt_stack.clear();
+
+    CFG cfg = build_cfg(program);
+    auto postdom = compute_postdom(cfg);
+    auto ipdom = compute_ipdom(cfg, postdom);
+
     while (pc < program.size()) {
         if (pc == curr_reconv_pc) {
             ReconvEntry top = simt_stack.back();
@@ -152,7 +162,12 @@ void Wave::run(const std::vector<Instruction>& program) {
                 continue;
             }
             uint32_t target = instr.operands[0].value;
-            uint32_t reconv_pc = instr.operands[1].value;
+            //uint32_t reconv_pc = instr.operands[1].value;
+
+            auto curr_block = cfg.pc_to_block[pc];
+            auto ipdom_block = ipdom[curr_block];
+            auto reconv_pc = cfg.blocks[ipdom_block].start_pc; 
+
             std::array<bool, WAVE_SIZE> taken_mask {};
             std::array<bool, WAVE_SIZE> fall_mask {};
             for(size_t i {}; i < WAVE_SIZE; i++) {

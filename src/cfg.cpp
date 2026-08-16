@@ -140,4 +140,29 @@ void print_cfg(const CFG& cfg) {
         }
         std::cout << "}\n";
     }
+    std::vector<size_t> ipdom = compute_ipdom(cfg, pdom);
+    for (size_t i{}; i < ipdom.size(); i++) {
+        std::cout << "ipdom(BB" << i << ") = ";
+        if (ipdom[i] == SIZE_MAX) std::cout << "none\n";
+        else std::cout << "BB" << ipdom[i] << "\n";
+    }
+}
+
+std::vector<size_t> compute_ipdom(const CFG& cfg, const std::vector<std::set<size_t>>& pdom) {
+    size_t num_blocks = cfg.blocks.size();
+    std::vector<size_t> ipdom(num_blocks, SIZE_MAX);
+
+    for (size_t i{}; i < num_blocks; i++) { 
+        size_t smallest_pc = SIZE_MAX;
+        size_t earliest_block = SIZE_MAX;
+        for(size_t j : pdom[i]) { // each block j that post dominates block i
+            if (j == i) continue;
+            if (cfg.blocks[i].start_pc < cfg.blocks[j].start_pc && cfg.blocks[j].start_pc < smallest_pc) { // downstream + smallest pc yet
+                smallest_pc = cfg.blocks[j].start_pc;
+                earliest_block = j;
+            }
+        }
+        ipdom[i] = earliest_block;
+    }
+    return ipdom;
 }
