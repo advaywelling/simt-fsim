@@ -20,4 +20,4 @@ CFG build_cfg(const std::vector<Instruction>& program);
 
 void print_cfg(const CFG& cfg);
 
-std::vector<std::vector<size_t>> compute_postdom(const CFG& cfg);
+std::vector<std::set<size_t>> compute_postdom(const CFG& cfg);

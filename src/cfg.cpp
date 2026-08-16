@@ -62,19 +62,7 @@ CFG build_cfg(const std::vector<Instruction>& program) {
     return cfg;
 }
 
-void print_cfg(const CFG& cfg) {
-    for (size_t i = 0; i < cfg.blocks.size(); i++) {
-        const BasicBlock& b = cfg.blocks[i];
-        std::cout << "BB" << i << " [" << b.start_pc << "-" << b.end_pc << "] -> {";
-        for (size_t s = 0; s < b.edges.size(); s++) {
-            std::cout << "BB" << b.edges[s];
-            if (s + 1 < b.edges.size()) std::cout << ", ";
-        }
-        std::cout << "}\n";
-    }
-}
-
-std::vector<std::vector<size_t>> compute_postdom(const CFG& cfg) {
+std::vector<std::set<size_t>> compute_postdom(const CFG& cfg) {
     size_t num_blocks = cfg.blocks.size();
     std::vector<std::set<size_t>> postdom(num_blocks);
 
@@ -111,11 +99,11 @@ std::vector<std::vector<size_t>> compute_postdom(const CFG& cfg) {
 
             if (!curr_block_edges.empty()) {
                 new_pdom = postdom[curr_block_edges[0]];
-                for(size_t i = 1; i < curr_block_edges.size(); i++) {
+                for(size_t j = 1; j < curr_block_edges.size(); j++) {
                     std::set<size_t> temp;
                     // for each successor, only insert if ALSO in successing successors (say that quickly 5 times)
                     for(size_t x : new_pdom) {
-                        if(postdom[curr_block_edges[i]].count(x)) {
+                        if(postdom[curr_block_edges[j]].count(x)) {
                             temp.insert(x);
                         }
                     }
@@ -129,5 +117,27 @@ std::vector<std::vector<size_t>> compute_postdom(const CFG& cfg) {
                 changed = true;
             }
         }
+    }
+    return postdom;
+}
+
+
+void print_cfg(const CFG& cfg) {
+    for (size_t i = 0; i < cfg.blocks.size(); i++) {
+        const BasicBlock& b = cfg.blocks[i];
+        std::cout << "BB" << i << " [" << b.start_pc << "-" << b.end_pc << "] -> {";
+        for (size_t s = 0; s < b.edges.size(); s++) {
+            std::cout << "BB" << b.edges[s];
+            if (s + 1 < b.edges.size()) std::cout << ", ";
+        }
+        std::cout << "}\n";
+    }
+    std::vector<std::set<size_t>> pdom = compute_postdom(cfg);
+    for (size_t i{}; i < pdom.size(); i++) {
+        std::cout << "postdom(BB" << i << ") = {";
+        for (size_t x : pdom[i]) {
+            std::cout << " " << x << " ";
+        }
+        std::cout << "}\n";
     }
 }
