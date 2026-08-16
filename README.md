@@ -1,5 +1,5 @@
 # simt-fsim
-A functional SIMT simulator that executes GPU kernel IR (my bad custom ISA, PTX, SPIR-V...), reporting SIMD utilization and memory coalescing - not cycle-accurate
+A functional SIMT simulator that executes GPU kernel IR (my bad custom ISA, PTX, SPIR-V...), reporting SIMD utilization and memory coalescing
 
 # What works right now
 - SIMD utilization and coalescing works (you can only test if you write kernels in my IR, PTX and SPIR-V are FARRR from being supported)
