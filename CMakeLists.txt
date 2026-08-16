@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(sim src/main.cpp src/wave.cpp)
+add_executable(sim src/main.cpp src/wave.cpp src/cfg.cpp)
 
 target_include_directories(sim PRIVATE src)
 target_compile_options(sim PRIVATE -Wall -Wextra -Wpedantic)

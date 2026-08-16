@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdlib>
 #include <vector>
+#include <iostream>
 #include "IR.h"
 
 struct BasicBlock {
@@ -15,3 +16,4 @@ struct CFG {
 };
 
 CFG build_cfg(const std::vector<Instruction>& program);
+void print_cfg(const CFG& cfg);

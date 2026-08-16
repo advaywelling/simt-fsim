@@ -1,4 +1,5 @@
 #include "wave.h"
+#include "cfg.h"
 #include "../tests/tests_all.h"
 
 int main(int argc, char* argv[]) {
@@ -10,13 +11,17 @@ int main(int argc, char* argv[]) {
 
         std::cout << "Running Branch test \n";
         test_branch_basic();
-        std:: cout << "\n";
+        std::cout << "\n";
         test_branch_nested();
-        std:: cout << "\n";
+        std::cout << "\n";
 
         std::cout << "Running LW test \n";
         test_lw();
         std:: cout << "\n";
+
+        std::cout << "Running CFG test \n";
+        test_cfg();
+        std::cout << "\n";
         return 0;
     }
     std::string test = argv[1];
@@ -33,5 +38,9 @@ int main(int argc, char* argv[]) {
     if (test == "lw") {
         std::cout << "Running LW test \n";
         test_lw();
+    }
+    if (test == "cfg") {
+        std::cout << "Running CFG test \n";
+        test_cfg();
     }
 }

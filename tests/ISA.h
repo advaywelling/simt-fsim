@@ -1,5 +1,6 @@
 #pragma once
 #include "../src/wave.h"
+#include "../src/cfg.h"
 #include <iostream>
 
 constexpr int num_regs = 32;
