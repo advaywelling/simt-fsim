@@ -25,10 +25,11 @@ inline Reference run_reference(const std::vector<Instruction>& program, size_t n
     Reference out;
     out.regs.assign(num_regs, std::array<uint32_t, WAVE_SIZE>{});
 
-    std::vector<uint32_t> gmem(GMEM_SIZE);
-    for (size_t i{}; i < GMEM_SIZE; i++) gmem[i] = i * 10; // same fill as Wave's constructor
-
     for (size_t lane{}; lane < WAVE_SIZE; lane++) {
+        // fresh gmem for each lane, kernel needed cross-access across lanes shud fail
+        std::vector<uint32_t> gmem(GMEM_SIZE);
+        for (size_t i{}; i < GMEM_SIZE; i++) gmem[i] = i * 10; // same fill as Wave's constructor
+
         std::vector<uint32_t> r(num_regs, 0);
         r[0] = lane; // r0 = lane id
 
@@ -64,8 +65,13 @@ inline Reference run_reference(const std::vector<Instruction>& program, size_t n
                 case Opcode::BRANCH:
                     pc = in.operands[0].value;
                     continue; // pc is already where it needs to be
+                case Opcode::SW_U32: {
+                    uint32_t addr = ref_resolve(in.operands[0], r) + ref_resolve(in.operands[2], r);
+                    gmem[addr % GMEM_SIZE] = ref_resolve(in.operands[1], r);
+                    break;
+                }
                 default:
-                    break; // SW_U32 is unimplemented in Wave too
+                    break;
             }
             pc++;
         }

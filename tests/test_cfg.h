@@ -16,30 +16,36 @@ inline void test_cfg() {
     CFG cfg = build_cfg(program);
     print_cfg(cfg);
 
-    // leaders are 0 (entry), 3 and 5 (branch fall-through / target), 6 (branch target)
-    CHECK(cfg.blocks.size() == 4);
-    if (cfg.blocks.size() != 4) return; // the checks below would index off the end
+    // leaders are 0 (entry), 3 and 5 (branch fall-through / target), 6 (branch target),
+    // plus the virtual exit block build_cfg appends at pc == program.size()
+    CHECK(cfg.blocks.size() == 5);
+    if (cfg.blocks.size() != 5) return; // the checks below would index off the end
+    CHECK(cfg.exit_block == 4);
 
     CHECK(cfg.blocks[0].start_pc == 0 && cfg.blocks[0].end_pc == 2);
     CHECK(cfg.blocks[1].start_pc == 3 && cfg.blocks[1].end_pc == 4);
     CHECK(cfg.blocks[2].start_pc == 5 && cfg.blocks[2].end_pc == 5);
     CHECK(cfg.blocks[3].start_pc == 6 && cfg.blocks[3].end_pc == 6);
+    CHECK(cfg.blocks[4].start_pc == 7 && cfg.blocks[4].end_pc == 7); // virtual exit
 
     CHECK(cfg.blocks[0].edges == std::vector<size_t>{2, 1}); // cond branch: taken then fall-through
     CHECK(cfg.blocks[1].edges == std::vector<size_t>{3});    // uncond branch to BB3
     CHECK(cfg.blocks[2].edges == std::vector<size_t>{3});    // falls through into BB3
-    CHECK(cfg.blocks[3].edges.empty());                      // exit
+    CHECK(cfg.blocks[3].edges == std::vector<size_t>{4});    // falls off the end into the exit
+    CHECK(cfg.blocks[4].edges.empty());                      // exit has no successors
 
     std::vector<std::set<size_t>> pdom = compute_postdom(cfg);
-    CHECK(pdom[0] == std::set<size_t>{0, 3});
-    CHECK(pdom[1] == std::set<size_t>{1, 3});
-    CHECK(pdom[2] == std::set<size_t>{2, 3});
-    CHECK(pdom[3] == std::set<size_t>{3});
+    CHECK(pdom[0] == std::set<size_t>{0, 3, 4});
+    CHECK(pdom[1] == std::set<size_t>{1, 3, 4});
+    CHECK(pdom[2] == std::set<size_t>{2, 3, 4});
+    CHECK(pdom[3] == std::set<size_t>{3, 4});
+    CHECK(pdom[4] == std::set<size_t>{4});
 
     // both arms of the branch reconverge at BB3
     std::vector<size_t> ipdom = compute_ipdom(cfg, pdom);
     CHECK(ipdom[0] == 3);
     CHECK(ipdom[1] == 3);
     CHECK(ipdom[2] == 3);
-    CHECK(ipdom[3] == SIZE_MAX); // exit block has no post-dominator but itself
+    CHECK(ipdom[3] == 4);
+    CHECK(ipdom[4] == SIZE_MAX); // exit block post-dominates only itself
 }

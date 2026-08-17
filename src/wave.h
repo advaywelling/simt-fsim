@@ -28,6 +28,9 @@ class Wave {
         std::array<bool, WAVE_SIZE> active_mask; // who's active rn
         std::vector<ReconvEntry> simt_stack; // all deferred lanes
         void execute(const Instruction& instr); // execute 1 instr
+        std::array<bool, WAVE_SIZE> exec_mask(const Instruction& instr) const; // active AND guard passes
+        void count_issue(const std::array<bool, WAVE_SIZE>& mask); // one instruction issue
+        void count_mem(size_t segments, size_t lanes); // one memory instruction
         size_t curr_reconv_pc = SIZE_MAX;
         size_t total_active_lanes {};
         size_t ideal_active_lanes {};

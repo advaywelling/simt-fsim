@@ -31,6 +31,10 @@ void Wave::dump_regs() const {
 }
 
 void Wave::stats() const {
+    if (ideal_active_lanes == 0) {
+        std::cout << "No instructions issued\n";
+        return;
+    }
     int simd_util = (double)total_active_lanes / ideal_active_lanes * 100;
     std::cout << "Average SIMD utilization = " << simd_util << "%\n";
 
@@ -52,26 +56,52 @@ uint32_t Wave::resolve(const Operand& operand, size_t lane) const {
     std::abort();
 }
 
+// lanes that are active AND pass this instruction's guard, so lanes that
+// actually do smth, fixed utilization error with predication
+std::array<bool, WAVE_SIZE> Wave::exec_mask(const Instruction& instr) const {
+    std::array<bool, WAVE_SIZE> mask {};
+    for (size_t i{}; i < WAVE_SIZE; i++) {
+        if (!active_mask[i]) continue; // dont execute masked lanes
+        if (instr.guard != NO_GUARD) {
+            bool pred_val = regs[instr.guard][i];
+            if (pred_val == instr.guard_negate) continue; // dont execute if guard val matches
+        }
+        mask[i] = true;
+    }
+    return mask;
+}
+
+// calculate simd utilization
+void Wave::count_issue(const std::array<bool, WAVE_SIZE>& mask) {
+    size_t lanes {};
+    for (size_t i{}; i < WAVE_SIZE; i++) {
+        lanes += mask[i] ? 1 : 0;
+    }
+    total_active_lanes += lanes;
+    ideal_active_lanes += WAVE_SIZE;
+}
+
+// memory utilization
+void Wave::count_mem(size_t segments, size_t lanes) {
+    if (lanes == 0) return; // no lanes issued, nothing to charge for
+    total_mem_transfers += segments;
+    // best case is those lanes packed into as few segments as possible
+    ideal_mem_transfers += (lanes + GMEM_SEGMENT_SIZE - 1) / GMEM_SEGMENT_SIZE;
+}
+
 void Wave::execute(const Instruction& instr) {
+    const std::array<bool, WAVE_SIZE> exec = exec_mask(instr);
     switch (instr.op) {
         case Opcode::MOV_IMM_U32: {
             for (size_t i {}; i < WAVE_SIZE; i++) {
-                if (!active_mask[i]) continue; // dont execute masked lanes
-                if (instr.guard != NO_GUARD) {
-                    bool pred_val = regs[instr.guard][i];
-                    if (pred_val == instr.guard_negate) continue; // dont execute if guard val matches
-                }
+                if (!exec[i]) continue;
                 regs[instr.operands[0].value][i] = resolve(instr.operands[1], i);
             }
             break;
         }
         case Opcode::ADD_U32: {
             for (size_t i {}; i < WAVE_SIZE; i++) {
-                if (!active_mask[i]) continue;
-                if (instr.guard != NO_GUARD) {
-                    bool pred_val = regs[instr.guard][i];
-                    if (pred_val == instr.guard_negate) continue;
-                }
+                if (!exec[i]) continue;
                 uint32_t a = resolve(instr.operands[1], i);
                 uint32_t b = resolve(instr.operands[2], i);
                 regs[instr.operands[0].value][i] = a + b;
@@ -80,11 +110,7 @@ void Wave::execute(const Instruction& instr) {
         }
         case Opcode::SETP_LT_U32: {
             for (size_t i {}; i < WAVE_SIZE; i++) {
-                if (!active_mask[i]) continue;
-                if (instr.guard != NO_GUARD) {
-                    bool pred_val = regs[instr.guard][i];
-                    if (pred_val == instr.guard_negate) continue;
-                }
+                if (!exec[i]) continue;
                 uint32_t a = resolve(instr.operands[1], i);
                 uint32_t b = resolve(instr.operands[2], i);
                 regs[instr.operands[0].value][i] = (a < b) ? 1 : 0;
@@ -93,32 +119,38 @@ void Wave::execute(const Instruction& instr) {
         }
         case Opcode::LW_U32: {
             std::set<size_t> segments;
+            size_t lanes {};
             for (size_t i{}; i < WAVE_SIZE; i++) {
-                if (!active_mask[i]) continue;
-                if (instr.guard != NO_GUARD) {
-                    bool pred_val = regs[instr.guard][i];
-                    if (pred_val == instr.guard_negate) continue;
-                }
+                if (!exec[i]) continue;
                 uint32_t a = resolve(instr.operands[1], i);
                 uint32_t b = resolve(instr.operands[2], i);
-                uint32_t addr = a + b;
+                uint32_t addr = (a + b) % GMEM_SIZE; // wrap, don't run off the end
                 segments.insert(addr / GMEM_SEGMENT_SIZE); // for checking coalescing
                 regs[instr.operands[0].value][i] = gmem[addr];
+                lanes++;
             }
-            total_mem_transfers += segments.size();
-            ideal_mem_transfers += 1;
+            count_mem(segments.size(), lanes);
+            break;
+        }
+        case Opcode::SW_U32: {
+            std::set<size_t> segments;
+            size_t lanes {};
+            for (size_t i{}; i < WAVE_SIZE; i++) {
+                if (!exec[i]) continue;
+                uint32_t base = resolve(instr.operands[0], i);
+                uint32_t off = resolve(instr.operands[2], i);
+                uint32_t addr = (base + off) % GMEM_SIZE;
+                segments.insert(addr / GMEM_SEGMENT_SIZE);
+                gmem[addr] = resolve(instr.operands[1], i);
+                lanes++;
+            }
+            count_mem(segments.size(), lanes);
             break;
         }
         default: break;
-        // BRA handled in run, not here
+        // BRANCH handled in run, not here
     }
-    // count active lanes
-    int active_count = 0;
-    for (size_t i{}; i < WAVE_SIZE; i++) {
-        active_count += active_mask[i] ? 1 : 0;
-    }
-    total_active_lanes += active_count;
-    ideal_active_lanes += WAVE_SIZE;
+    count_issue(exec);
 }
 
 bool check_mask(const std::array<bool, WAVE_SIZE> path) {
@@ -161,6 +193,7 @@ void Wave::run(const std::vector<Instruction>& program) {
                 pc++;
                 continue;
             }
+            count_issue(active_mask); // a branch occupies an issue slot like anything else
             uint32_t target = instr.operands[0].value;
             //uint32_t reconv_pc = instr.operands[1].value;
 
@@ -189,7 +222,8 @@ void Wave::run(const std::vector<Instruction>& program) {
             // divergent, so now we need a reconvergence point + stack stuff
             auto curr_block = cfg.pc_to_block[pc];
             auto ipdom_block = ipdom[curr_block];
-            auto reconv_pc = cfg.blocks[ipdom_block].start_pc;
+            // no post dominator (block can't reach the exit) -> reconverge at the end which just lets the run loop terminate and unwind the stack
+            size_t reconv_pc = (ipdom_block == SIZE_MAX) ? program.size() : cfg.blocks[ipdom_block].start_pc;
 
             ReconvEntry join, true_path, false_path;
             // reconverge here

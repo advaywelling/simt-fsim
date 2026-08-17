@@ -40,7 +40,8 @@ CFG build_cfg(const std::vector<Instruction>& program) {
     BasicBlock end_block;
     end_block.start_pc = end_block.end_pc = n;
     cfg.blocks.push_back(end_block);
-    cfg.pc_to_block[n] = cfg.blocks.size() - 1;
+    cfg.exit_block = cfg.blocks.size() - 1;
+    cfg.pc_to_block[n] = cfg.exit_block;
 
     // build edges between blocks (nodes) 
     // stop before exit block
@@ -91,14 +92,8 @@ std::vector<std::set<size_t>> compute_postdom(const CFG& cfg) {
     size_t num_blocks = cfg.blocks.size();
     std::vector<std::set<size_t>> postdom(num_blocks);
 
-    // find exit block
-    size_t exit = 0;
-    for(size_t i{}; i < num_blocks; i++) {
-        if (cfg.blocks[i].edges.empty()) {
-            exit = i;
-            break;
-        }
-    }
+    // build_cfg already knows which block this is, don't go looking for it
+    size_t exit = cfg.exit_block;
 
     // build pdom sets optimistically 
     // if last block then pdom set is just itself, otherwise start with all blocks

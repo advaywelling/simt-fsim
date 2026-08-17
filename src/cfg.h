@@ -14,6 +14,7 @@ struct BasicBlock {
 struct CFG {
     std::vector<BasicBlock> blocks;
     std::vector<size_t> pc_to_block;
+    size_t exit_block {}; // virtual block at pc == program.size(), the only one with no successors
 };
 
 CFG build_cfg(const std::vector<Instruction>& program);

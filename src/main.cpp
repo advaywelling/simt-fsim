@@ -49,6 +49,13 @@ int main(int argc, char* argv[]) {
         ran = true;
     }
 
+    if (test == "all" || test == "kernels") {
+        std::cout << "Running Kernels\n";
+        test_kernels();
+        std::cout << "\n";
+        ran = true;
+    }
+
     if (!ran) {
         std::cout << "Unknown test '" << test << "'. Options: alu, branch, lw, cfg\n";
         return 2;
