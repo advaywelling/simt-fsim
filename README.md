@@ -10,6 +10,7 @@ A functional SIMT simulator that executes GPU kernels through a custom IR, repor
 
 
 # How it works
+Most of it is just implementing how waves execute threads in lockstep. 
 The interesting part is figuring out where diverged lanes come back together.
 
 When a branch splits the wave, some lanes go one way and some go the other. You have to run 
@@ -21,7 +22,7 @@ run at half occupancy is half your SIMD throughput cooked. So the question is
 2. Compute post-dominators - the blocks that every path from here has to go through
 3. Take the immediate post-dominator of each block. That's the closest one, so it's the
    earliest point the lanes can possibly reconverge
-4. At a divergent branch, push a JOIN entry holding the full mask plus one entry per path
+4. At a divergent branch, push a JOIN entry holding the full current mask plus one entry per path
    onto a SIMT stack, all tagged with that reconvergence PC. Pop the top and run it. When the
    PC reaches the reconvergence point, pop the next path. When only the JOIN is left, popping
    it puts everyone back together
@@ -33,6 +34,7 @@ anything, it just jumps.
 # Numbers
 Here are some of the numbers I've gotten till now!
 Configuration - 32 lanes/threads per wave, each global memory segment is 32 words
+
 I ran a few basic kernels and loops from `./build/sim kernels` and `./build/sim loop`
 
 | Kernel | SIMD utilization | Coalescing |
@@ -44,10 +46,10 @@ I ran a few basic kernels and loops from `./build/sim kernels` and `./build/sim 
 | Divergent loop, lane i runs i iterations | 52% | - |
 | Nested divergent loops | 34% | - |
 
-The three strided loads (vector add does consecutive loads so count that as the first) have the same SIMD utilization. It's pretty clear that unoptimal access patterns really breaks coalescing down - serialized loads are not ideal. I don't really have a way of seeing how bad this is in terms of kernel runtime since this simulator is functional. Maybe I'll make it cycle-accurate one day LOL
+The three strided loads (vector add does consecutive loads so count that as the first) have the same SIMD utilization. It's pretty clear that unoptimal access patterns really breaks coalescing - serialized loads are not ideal. I don't really have a way of seeing how bad this is in terms of kernel runtime since this simulator is functional. Maybe I'll make it cycle-accurate one day (gotta dream big while young)
 
 # How I know it's right
-I was writing out expected reg values by hand at first but oh man that got complicated fast, especially since I moved from 8 lanes to 32. It also increased the change of human error. To streamline testing I build a small scalar reference model.
+I was writing out expected reg values by hand at first but oh man that got complicated fast, especially since I moved from 8 lanes to 32. It also increased the chance of human error. To streamline testing I build a small scalar reference model.
 
 There's a second model in `tests/reference.h` that runs one lane at a time with its own PC,
 own registers, no active mask, no SIMT stack, no CFG, nothing GPU specific just a loop that runs all instructions. Every test runs the real wave and diffs all 32 lanes
