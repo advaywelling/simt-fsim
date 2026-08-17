@@ -38,6 +38,29 @@ inline void expect_reg_impl(const char* file, int line, const Wave& wave, size_t
     std::cout << "\n";
 }
 
+// expected value as a function of the lane id, so it survives changes to WAVE_SIZE.
+// reports the first lane that disagrees.
+template <typename F>
+inline void expect_reg_fn_impl(const char* file, int line, const Wave& wave, size_t r, F want) {
+    checks_run++;
+    const RegFile& regs = wave.registers();
+    if (r >= regs.size()) {
+        fail_at(file, line, "R" + std::to_string(r) + " does not exist");
+        return;
+    }
+    for (size_t lane{}; lane < WAVE_SIZE; lane++) {
+        uint32_t expected = want(lane);
+        if (regs[r][lane] == expected) continue;
+        fail_at(file, line, "R" + std::to_string(r) + " lane " + std::to_string(lane)
+                          + ": want " + std::to_string(expected)
+                          + ", got " + std::to_string(regs[r][lane]));
+        return;
+    }
+}
+
+// EXPECT_REG_FN(wave, 2, [](size_t lane) -> uint32_t { return lane < 4 ? 1 : 0; })
+#define EXPECT_REG_FN(wave, r, fn) expect_reg_fn_impl(__FILE__, __LINE__, (wave), (r), fn)
+
 // variadic so commas inside the condition (e.g. vector<size_t>{2, 1}) don't split the macro arg
 #define CHECK(...) check_impl(__FILE__, __LINE__, (__VA_ARGS__), #__VA_ARGS__)
 

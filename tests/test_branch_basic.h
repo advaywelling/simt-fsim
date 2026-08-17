@@ -22,9 +22,9 @@ inline void test_branch_basic() {
     EXPECT_MATCHES_REFERENCE(wave, program);
 
     // hand-derived anchors: lanes 0-3 take the branch (tid < 4), lanes 4-7 fall through
-    EXPECT_REG(wave, 1,  4, 4, 4, 4, 4, 4, 4, 4);
-    EXPECT_REG(wave, 2,  1, 1, 1, 1, 0, 0, 0, 0); // tid < 4
-    EXPECT_REG(wave, 3,  0, 0, 0, 0, 5, 5, 5, 5); // written on the false path only
-    EXPECT_REG(wave, 4,  1, 1, 1, 1, 0, 0, 0, 0); // true path: R2 + R3 = 1 + 0
-    EXPECT_REG(wave, 5, 10,10,10,10,10,10,10,10); // after reconvergence, every lane runs this
+    EXPECT_REG_FN(wave, 1, [](size_t) -> uint32_t { return 4; });
+    EXPECT_REG_FN(wave, 2, [](size_t t) -> uint32_t { return t < 4 ? 1 : 0; }); // tid < 4
+    EXPECT_REG_FN(wave, 3, [](size_t t) -> uint32_t { return t < 4 ? 0 : 5; }); // false path only
+    EXPECT_REG_FN(wave, 4, [](size_t t) -> uint32_t { return t < 4 ? 1 : 0; }); // true: R2 + R3
+    EXPECT_REG_FN(wave, 5, [](size_t) -> uint32_t { return 10; });              // after reconvergence
 }

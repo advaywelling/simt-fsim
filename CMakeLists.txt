@@ -16,6 +16,6 @@ target_link_options(sim PRIVATE $<$<CONFIG:Debug>:-fsanitize=address,undefined>)
 
 # a non-zero exit code from sim fails the test
 enable_testing()
-foreach(t alu branch lw cfg)
+foreach(t alu branch loop lw cfg)
     add_test(NAME ${t} COMMAND sim ${t})
 endforeach()

@@ -20,6 +20,22 @@ int main(int argc, char* argv[]) {
         std::cout << "\n";
         ran = true;
     }
+    if (test == "all" || test == "loop") {
+        std::cout << "Running Loop tests\n";
+        test_basic_loop();
+        std::cout << "\n";
+        test_loop_do_while();
+        std::cout << "\n";
+        test_loop_if_inside();
+        std::cout << "\n";
+        test_loop_nested();
+        std::cout << "\n";
+        test_loop_sequential();
+        std::cout << "\n";
+        test_loop_long_trip();
+        std::cout << "\n";
+        ran = true;
+    }
     if (test == "all" || test == "lw") {
         std::cout << "Running LW test\n";
         test_lw();

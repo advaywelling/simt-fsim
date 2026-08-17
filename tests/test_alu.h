@@ -21,9 +21,9 @@ inline void test_alu() {
 
     // hand-derived anchors: these pin down what the ISA is supposed to mean,
     // which the reference model cannot do for us (it could be wrong the same way)
-    EXPECT_REG(wave, 0,  0, 1, 2, 3, 4, 5, 6, 7); // R0 is preloaded with the lane id
-    EXPECT_REG(wave, 1, 10,10,10,10,10,10,10,10); // R3 + R4 = 5 + 5
-    EXPECT_REG(wave, 2,  3, 3, 3, 3, 3, 3, 3, 3);
-    EXPECT_REG(wave, 3,  5, 5, 5, 5, 5, 5, 5, 5); // R1 + R2 = 2 + 3
-    EXPECT_REG(wave, 4,  5, 5, 5, 5, 5, 5, 5, 5);
+    EXPECT_REG_FN(wave, 0, [](size_t lane) -> uint32_t { return lane; }); // preloaded lane id
+    EXPECT_REG_FN(wave, 1, [](size_t) -> uint32_t { return 10; });        // R3 + R4 = 5 + 5
+    EXPECT_REG_FN(wave, 2, [](size_t) -> uint32_t { return 3; });
+    EXPECT_REG_FN(wave, 3, [](size_t) -> uint32_t { return 5; });         // R1 + R2 = 2 + 3
+    EXPECT_REG_FN(wave, 4, [](size_t) -> uint32_t { return 5; });
 }
