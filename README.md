@@ -46,7 +46,7 @@ I ran a few basic kernels and loops from `./build/sim kernels` and `./build/sim 
 | Divergent loop, lane i runs i iterations | 52% | - |
 | Nested divergent loops | 34% | - |
 
-The three strided loads (vector add does consecutive loads so count that as the first) have the same SIMD utilization. It's pretty clear that unoptimal access patterns really breaks coalescing - serialized loads are not ideal. I don't really have a way of seeing how bad this is in terms of kernel runtime since this simulator is functional. Maybe I'll make it cycle-accurate one day (gotta dream big while young)
+The three strided loads (vector add does consecutive loads so count that as the first) have the same SIMD utilization. It's pretty clear that unoptimal access patterns really breaks coalescing since it forces global memory to fetch more segments, increasing the number of memory transfers. I don't have a way of seeing how bad this is in terms of kernel runtime since this simulator is functional. Maybe I'll make it cycle-accurate one day (gotta dream big while young)
 
 # How I know it's right
 I was writing out expected reg values by hand at first but oh man that got complicated fast, especially since I moved from 8 lanes to 32. It also increased the chance of human error. To streamline testing I build a small scalar reference model.
