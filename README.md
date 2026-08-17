@@ -1,12 +1,18 @@
 # simt-fsim
-A functional SIMT simulator that executes GPU kernel IR (my bad custom ISA, PTX, SPIR-V...), reporting SIMD utilization and memory coalescing
+A functional SIMT simulator that executes GPU kernels through a custom IR, reporting SIMD utilization and memory coalescing
 
 # What works right now
 - SIMD utilization and coalescing works (you can only test if you write kernels in my IR, PTX and SPIR-V are FARRR from being supported)
 - ~~Forward control flow only - no loops yet because that's hard but I am working on it right now~~
-- Loops work :))))
-- IPDOM reconvergence! You don't have to handfeed branch reconvergence PCs into instructions, it's handled behind the scenes :)
+- Loops work!
+- IPDOM reconvergence - you don't have to handfeed branch reconvergence PCs into instructions, it's handled behind the scenes
 - Predication with guards for basic control flow
+
+# What I'm working on
+- SW implementation
+- SAXPY, transpose, and reduction kernels using my ISA
+- Multiple waves
+- A frontend for PTX and SPIR-V (yeah...)
 
 # To build
 cmake -B build
