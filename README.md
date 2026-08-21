@@ -62,6 +62,7 @@ I still kept a few hand-written tests, mainly to test the ISA and make sure its 
 It all runs under ctest, and the debug build has ASan and UBSan on.
 
 # What I'm working on
+- Recursion
 - SAXPY, transpose, and reduction kernels using my ISA
 - Multiple waves, smem, barriers
 - A frontend for PTX and SPIR-V (yeah... that's gonna take a while)
